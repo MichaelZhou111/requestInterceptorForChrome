@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajax JSON Panel</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-row">
+                <div class="actions">
+                    <span class="brand">Ajax Interceptor</span>
+                    <button id="btn-record" class="icon-btn active" title="Stop recording">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
+                        </svg>
+                    </button>
+                    <button id="btn-clear" class="icon-btn" title="Clear log">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chk-preserve">
+                    <span>Preserve</span>
+                </label>
+            </div>
+            <div class="search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="input-filter" placeholder="Filter URLs...">
+            </div>
+        </div>
+
+        <!-- Main Content (Split View) -->
+        <div class="split-view">
+            <!-- Left: Request List -->
+            <div class="list-pane" id="list-pane">
+                <div id="request-list"></div>
+                <div id="list-empty-state" class="empty-state">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+                        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+                        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+                        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                    </svg>
+                    <p>Waiting for network...</p>
+                </div>
+            </div>
+
+            <!-- Right: Details -->
+            <div class="detail-pane" id="detail-pane">
+                <div id="detail-placeholder" class="empty-state">
+                    <p>Select a request</p>
+                </div>
+                
+                <div id="detail-content" class="hidden">
+                    <div class="detail-header">
+                        <button id="btn-back" class="icon-btn mobile-only">←</button>
+                        <div class="url-title" id="detail-url"></div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <!-- Payload Section -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span>Payload</span>
+                                <button class="copy-btn" data-target="req">Copy</button>
+                            </div>
+                            <div class="code-block" id="detail-payload"></div>
+                        </div>
+
+                        <!-- Response Section -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span>Response</span>
+                                <button class="copy-btn" data-target="res">Copy</button>
+                            </div>
+                            <div class="code-block" id="detail-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="sidepanel.js"></script>
+</body>
+</html>

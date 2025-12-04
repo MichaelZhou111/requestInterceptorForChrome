@@ -1,0 +1,5 @@
+{
+  "name": "Ajax Interceptor & JSON Viewer",
+  "description": "A Chrome DevTools extension to intercept AJAX requests and visualize request/response data in formatted JSON.",
+  "requestFramePermissions": []
+}

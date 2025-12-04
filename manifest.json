@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Ajax Interceptor & JSON Viewer",
+  "version": "3.0.0",
+  "description": "Intercepts AJAX requests and displays them in the Chrome Side Panel.",
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["proxy.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_title": "Open Ajax Interceptor"
+  }
+}
