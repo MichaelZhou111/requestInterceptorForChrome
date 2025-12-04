@@ -6,6 +6,7 @@ let activeTabId = null;
 let isCapturing = true;
 let preserveLog = false;
 let filterText = '';
+let filterMode = 'all'; // New state: 'all' | 'path' | 'path_query' | 'exact' | 'regex'
 let selectedRequestId = null;
 
 // --- DOM Elements ---
@@ -21,6 +22,10 @@ const detailReqHeaders = document.getElementById('detail-req-headers');
 const detailPayload = document.getElementById('detail-payload');
 const detailResHeaders = document.getElementById('detail-res-headers');
 const detailResponse = document.getElementById('detail-response');
+
+// Filter Elements
+const inputFilter = document.getElementById('input-filter');
+const filterModeSelect = document.getElementById('filter-mode');
 
 // Modal Elements
 const replayModal = document.getElementById('replay-modal');
@@ -65,8 +70,15 @@ function setupEventListeners() {
         preserveLog = e.target.checked;
     });
 
-    document.getElementById('input-filter').addEventListener('input', (e) => {
-        filterText = e.target.value.toLowerCase();
+    // Filter Input
+    inputFilter.addEventListener('input', (e) => {
+        filterText = e.target.value; // Don't lowercase here, handle in render based on mode
+        renderRequestList();
+    });
+
+    // Filter Mode Select
+    filterModeSelect.addEventListener('change', (e) => {
+        filterMode = e.target.value;
         renderRequestList();
     });
 
@@ -241,10 +253,54 @@ async function sendReplayRequest() {
 function renderRequestList() {
     requestListEl.innerHTML = '';
     
-    const filtered = requests.filter(r => 
-        r.url.toLowerCase().includes(filterText) || 
-        r.method.toLowerCase().includes(filterText)
-    );
+    const searchText = filterText.trim();
+    
+    const filtered = requests.filter(req => {
+        // If filter is empty, show all
+        if (!searchText) return true;
+
+        let targetUrl = req.url;
+        let urlObj = null;
+
+        try {
+            urlObj = new URL(req.url);
+        } catch (e) {
+            // If URL is invalid (e.g. data URI), force simple match mode
+            return req.url.toLowerCase().includes(searchText.toLowerCase());
+        }
+
+        // Apply Logic based on mode
+        switch (filterMode) {
+            case 'path':
+                // Match path only (e.g., /api/v1/users)
+                return urlObj.pathname.toLowerCase().includes(searchText.toLowerCase());
+            
+            case 'path_query':
+                // Match path + query (e.g., /api/v1/users?id=123)
+                const pathQuery = urlObj.pathname + urlObj.search;
+                return pathQuery.toLowerCase().includes(searchText.toLowerCase());
+            
+            case 'exact':
+                return req.url === searchText;
+
+            case 'regex':
+                try {
+                    // Case-insensitive regex match
+                    const regex = new RegExp(searchText, 'i');
+                    return regex.test(req.url);
+                } catch (e) {
+                    // Invalid regex, treat as non-match (or fallback to simple include?)
+                    // Let's fallback to simple include to be user friendly while typing
+                    return req.url.toLowerCase().includes(searchText.toLowerCase());
+                }
+
+            case 'all':
+            default:
+                // Match Method OR Full URL
+                return req.method.toLowerCase().includes(searchText.toLowerCase()) || 
+                       req.url.toLowerCase().includes(searchText.toLowerCase());
+        }
+    });
 
     if (filtered.length === 0) {
         listEmptyState.style.display = 'flex';

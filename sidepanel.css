@@ -90,31 +90,40 @@ body {
 }
 
 .search-box {
-    position: relative;
-}
-
-.search-icon {
-    position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    opacity: 0.7;
-}
-
-#input-filter {
-    width: 100%;
+    display: flex;
+    align-items: center;
     background-color: var(--bg-hover);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 6px 8px 6px 28px;
+    padding: 2px 4px;
+}
+
+.filter-select {
+    background-color: transparent;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    outline: none;
+    padding: 4px;
+    cursor: pointer;
+    max-width: 90px;
+}
+
+.filter-select option {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+}
+
+#input-filter {
+    flex: 1;
+    background-color: transparent;
+    border: none;
+    padding: 4px 8px;
     color: var(--text-main);
     font-size: 12px;
     outline: none;
-}
-
-#input-filter:focus {
-    border-color: var(--accent);
+    min-width: 0;
 }
 
 /* Split View */

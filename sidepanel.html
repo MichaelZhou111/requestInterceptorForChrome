@@ -32,10 +32,13 @@
                 </label>
             </div>
             <div class="search-box">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
+                <select id="filter-mode" class="filter-select">
+                    <option value="all">Full URL</option>
+                    <option value="path">Path Only</option>
+                    <option value="path_query">Path & Query</option>
+                    <option value="exact">Exact Match</option>
+                    <option value="regex">Regex</option>
+                </select>
                 <input type="text" id="input-filter" placeholder="Filter URLs...">
             </div>
         </div>
