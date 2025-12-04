@@ -21,6 +21,20 @@
     }
   };
 
+  // Helper to parse XHR headers string into object
+  const parseHeaders = (headerStr) => {
+      const headers = {};
+      if (!headerStr) return headers;
+      const arr = headerStr.trim().split(/[\r\n]+/);
+      arr.forEach(line => {
+          const parts = line.split(': ');
+          const header = parts.shift();
+          const value = parts.join(': ');
+          if (header) headers[header] = value;
+      });
+      return headers;
+  };
+
   // --- Intercept XMLHttpRequest ---
   
   XHR.open = function(method, url) {
@@ -45,6 +59,8 @@
       if (!this.responseType || this.responseType === 'text') {
         responseBody = safeJsonParse(this.responseText);
       }
+      
+      const responseHeaders = parseHeaders(this.getAllResponseHeaders());
 
       broadcast({
         id,
@@ -54,6 +70,7 @@
         status: this.status,
         type: 'xhr',
         requestHeaders: this._requestHeaders,
+        responseHeaders: responseHeaders,
         requestBody: safeJsonParse(postData) || postData,
         responseBody: responseBody,
         duration: 0 
@@ -79,7 +96,6 @@
     } else if (resource instanceof Request) {
         url = resource.url;
         method = resource.method; 
-        // Cannot easily read Request body here without consuming it
     }
 
     if (config) {
@@ -88,7 +104,6 @@
             requestBody = safeJsonParse(config.body) || config.body;
         }
         if (config.headers) {
-            // Normalize headers
             if (config.headers instanceof Headers) {
                 config.headers.forEach((v, k) => reqHeaders[k] = v);
             } else {
@@ -100,8 +115,13 @@
     try {
         const response = await originalFetch(...args);
         
-        // We need to clone the response to read it without consuming the stream for the actual app
         const clone = response.clone();
+        
+        // Capture Response Headers
+        const resHeaders = {};
+        response.headers.forEach((val, key) => {
+            resHeaders[key] = val;
+        });
         
         clone.text().then(text => {
             const duration = Date.now() - startTime;
@@ -113,6 +133,7 @@
                 status: response.status,
                 type: 'fetch',
                 requestHeaders: reqHeaders,
+                responseHeaders: resHeaders,
                 requestBody: requestBody,
                 responseBody: safeJsonParse(text),
                 duration
@@ -137,16 +158,36 @@
 
       console.log('[Ajax Interceptor] Replaying:', method, url);
 
+      // Filter out unsafe headers that browser forbids setting manually
+      const unsafeHeaders = [
+          'accept-charset', 'accept-encoding', 'access-control-request-headers',
+          'access-control-request-method', 'connection', 'content-length',
+          'cookie', 'cookie2', 'date', 'dnt', 'expect', 'host', 'keep-alive',
+          'origin', 'referer', 'te', 'trailer', 'transfer-encoding', 
+          'upgrade', 'via'
+      ];
+
+      const cleanHeaders = {};
+      if (headers) {
+          Object.keys(headers).forEach(key => {
+              if (!unsafeHeaders.includes(key.toLowerCase())) {
+                  cleanHeaders[key] = headers[key];
+              }
+          });
+      }
+
       const fetchOptions = {
           method: method,
-          headers: { ...headers }, // Copy caught headers
+          headers: cleanHeaders, 
+          credentials: 'include', // CRITICAL: Include cookies to pass auth
       };
 
-      // Ensure content-type exists if we are sending JSON
       if (body) {
-        fetchOptions.body = body; // It's already stringified JSON or plain text
-        // If it looks like JSON and no content type is set, add it
-        if (!fetchOptions.headers['Content-Type'] && !fetchOptions.headers['content-type']) {
+        fetchOptions.body = body;
+        
+        const hasContentType = Object.keys(cleanHeaders).some(k => k.toLowerCase() === 'content-type');
+        
+        if (!hasContentType) {
             try {
                 JSON.parse(body);
                 fetchOptions.headers['Content-Type'] = 'application/json';
@@ -156,7 +197,6 @@
 
       try {
           await window.fetch(url, fetchOptions);
-          // The normal fetch interceptor above will catch this and send it to the UI
       } catch (e) {
           console.error('[Ajax Interceptor] Replay failed:', e);
       }

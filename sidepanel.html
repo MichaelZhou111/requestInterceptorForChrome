@@ -79,6 +79,14 @@
                     </div>
                     
                     <div class="detail-body">
+                        <!-- Request Headers -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span>Request Headers</span>
+                            </div>
+                            <div class="code-block" id="detail-req-headers"></div>
+                        </div>
+
                         <!-- Payload Section -->
                         <div class="section">
                             <div class="section-header">
@@ -88,10 +96,18 @@
                             <div class="code-block" id="detail-payload"></div>
                         </div>
 
+                        <!-- Response Headers -->
+                        <div class="section">
+                            <div class="section-header">
+                                <span>Response Headers</span>
+                            </div>
+                            <div class="code-block" id="detail-res-headers"></div>
+                        </div>
+
                         <!-- Response Section -->
                         <div class="section">
                             <div class="section-header">
-                                <span>Response</span>
+                                <span>Response Body</span>
                                 <button class="copy-btn" data-target="res">Copy</button>
                             </div>
                             <div class="code-block" id="detail-response"></div>
@@ -123,6 +139,10 @@
                 <div class="form-group">
                     <label>URL</label>
                     <input type="text" id="replay-url" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Headers (JSON)</label>
+                    <textarea id="replay-headers" class="form-input code-font" style="min-height: 80px;" spellcheck="false"></textarea>
                 </div>
                 <div class="form-group" style="flex: 1; display: flex; flex-direction: column;">
                     <label>Body (JSON)</label>

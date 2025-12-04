@@ -16,13 +16,17 @@ const listEmptyState = document.getElementById('list-empty-state');
 const detailContent = document.getElementById('detail-content');
 const detailPlaceholder = document.getElementById('detail-placeholder');
 const detailUrl = document.getElementById('detail-url');
+
+const detailReqHeaders = document.getElementById('detail-req-headers');
 const detailPayload = document.getElementById('detail-payload');
+const detailResHeaders = document.getElementById('detail-res-headers');
 const detailResponse = document.getElementById('detail-response');
 
 // Modal Elements
 const replayModal = document.getElementById('replay-modal');
 const replayMethod = document.getElementById('replay-method');
 const replayUrl = document.getElementById('replay-url');
+const replayHeaders = document.getElementById('replay-headers');
 const replayBody = document.getElementById('replay-body');
 const jsonError = document.getElementById('json-error');
 
@@ -117,6 +121,7 @@ function setupEventListeners() {
             status: message.status,
             type: message.type || 'xhr',
             requestHeaders: message.requestHeaders || {},
+            responseHeaders: message.responseHeaders || {},
             requestBody: message.requestBody,
             responseBody: message.responseBody
         };
@@ -161,7 +166,14 @@ function openReplayModal() {
     replayMethod.value = req.method;
     replayUrl.value = req.url;
     
-    // Pretty print JSON if object, otherwise raw string
+    // Fill Headers
+    if (req.requestHeaders && Object.keys(req.requestHeaders).length > 0) {
+        replayHeaders.value = JSON.stringify(req.requestHeaders, null, 2);
+    } else {
+        replayHeaders.value = "{}";
+    }
+    
+    // Fill Body
     if (req.requestBody && typeof req.requestBody === 'object') {
         replayBody.value = JSON.stringify(req.requestBody, null, 2);
     } else {
@@ -180,16 +192,28 @@ async function sendReplayRequest() {
     const url = replayUrl.value;
     const method = replayMethod.value;
     const bodyText = replayBody.value;
-    const req = requests.find(r => r.id === selectedRequestId);
+    const headersText = replayHeaders.value;
 
     let body = bodyText;
+    let headers = {};
     
-    // Validate JSON if method suggests body
+    // Validate Headers
+    try {
+        if (headersText.trim()) {
+            headers = JSON.parse(headersText);
+        }
+    } catch (e) {
+        jsonError.textContent = "Invalid JSON in Headers";
+        jsonError.classList.remove('hidden');
+        return;
+    }
+
+    // Validate Body
     if (method !== 'GET' && bodyText.trim()) {
         try {
             JSON.parse(bodyText); // Check validity
-            // We keep it as string to send to proxy, proxy will handle it
         } catch (e) {
+            jsonError.textContent = "Invalid JSON in Body";
             jsonError.classList.remove('hidden');
             return;
         }
@@ -204,7 +228,7 @@ async function sendReplayRequest() {
             data: {
                 url,
                 method,
-                headers: req ? req.requestHeaders : {},
+                headers, // Use edited headers
                 body
             }
         });
@@ -276,6 +300,14 @@ function renderDetail() {
     detailUrl.textContent = req.url;
     detailUrl.title = req.url;
 
+    // Render Request Headers
+    detailReqHeaders.innerHTML = '';
+    if (req.requestHeaders && Object.keys(req.requestHeaders).length > 0) {
+        detailReqHeaders.appendChild(createJsonTree(req.requestHeaders));
+    } else {
+        detailReqHeaders.innerHTML = '<span class="json-null">No headers</span>';
+    }
+
     // Render Payload
     detailPayload.innerHTML = '';
     if (req.requestBody) {
@@ -284,7 +316,15 @@ function renderDetail() {
         detailPayload.innerHTML = '<span class="json-null">No payload</span>';
     }
 
-    // Render Response
+    // Render Response Headers
+    detailResHeaders.innerHTML = '';
+    if (req.responseHeaders && Object.keys(req.responseHeaders).length > 0) {
+        detailResHeaders.appendChild(createJsonTree(req.responseHeaders));
+    } else {
+        detailResHeaders.innerHTML = '<span class="json-null">No headers</span>';
+    }
+
+    // Render Response Body
     detailResponse.innerHTML = '';
     if (req.responseBody) {
         detailResponse.appendChild(createJsonTree(req.responseBody));
