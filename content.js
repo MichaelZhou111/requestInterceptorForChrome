@@ -30,3 +30,14 @@ window.addEventListener('message', (event) => {
     // Extension context might be invalidated if updated/reloaded
   }
 });
+
+// Listen for messages from the Side Panel / Background (e.g., REPLAY request)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'REPLAY_REQUEST') {
+        // Forward to the proxy script in the main world
+        window.postMessage({
+            source: 'extension-replay',
+            payload: message.data
+        }, '*');
+    }
+});

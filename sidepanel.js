@@ -19,6 +19,13 @@ const detailUrl = document.getElementById('detail-url');
 const detailPayload = document.getElementById('detail-payload');
 const detailResponse = document.getElementById('detail-response');
 
+// Modal Elements
+const replayModal = document.getElementById('replay-modal');
+const replayMethod = document.getElementById('replay-method');
+const replayUrl = document.getElementById('replay-url');
+const replayBody = document.getElementById('replay-body');
+const jsonError = document.getElementById('json-error');
+
 // --- Initialization ---
 
 async function init() {
@@ -64,6 +71,16 @@ function setupEventListeners() {
         detailPane.style.display = 'none'; // Back to list on mobile
     });
 
+    // Replay Buttons
+    document.getElementById('btn-replay').addEventListener('click', openReplayModal);
+    document.getElementById('btn-close-modal').addEventListener('click', closeReplayModal);
+    document.getElementById('btn-send-replay').addEventListener('click', sendReplayRequest);
+    
+    // Close modal on outside click
+    replayModal.addEventListener('click', (e) => {
+        if (e.target === replayModal) closeReplayModal();
+    });
+
     // Copy buttons
     document.querySelectorAll('.copy-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -99,6 +116,7 @@ function setupEventListeners() {
             url: message.url,
             status: message.status,
             type: message.type || 'xhr',
+            requestHeaders: message.requestHeaders || {},
             requestBody: message.requestBody,
             responseBody: message.responseBody
         };
@@ -132,6 +150,66 @@ function setupEventListeners() {
             renderDetail();
         }
     });
+}
+
+// --- Replay Logic ---
+
+function openReplayModal() {
+    const req = requests.find(r => r.id === selectedRequestId);
+    if (!req) return;
+
+    replayMethod.value = req.method;
+    replayUrl.value = req.url;
+    
+    // Pretty print JSON if object, otherwise raw string
+    if (req.requestBody && typeof req.requestBody === 'object') {
+        replayBody.value = JSON.stringify(req.requestBody, null, 2);
+    } else {
+        replayBody.value = req.requestBody || '';
+    }
+    
+    jsonError.classList.add('hidden');
+    replayModal.classList.remove('hidden');
+}
+
+function closeReplayModal() {
+    replayModal.classList.add('hidden');
+}
+
+async function sendReplayRequest() {
+    const url = replayUrl.value;
+    const method = replayMethod.value;
+    const bodyText = replayBody.value;
+    const req = requests.find(r => r.id === selectedRequestId);
+
+    let body = bodyText;
+    
+    // Validate JSON if method suggests body
+    if (method !== 'GET' && bodyText.trim()) {
+        try {
+            JSON.parse(bodyText); // Check validity
+            // We keep it as string to send to proxy, proxy will handle it
+        } catch (e) {
+            jsonError.classList.remove('hidden');
+            return;
+        }
+    } else if (method === 'GET') {
+        body = undefined;
+    }
+
+    // Send to Content Script
+    if (activeTabId) {
+        chrome.tabs.sendMessage(activeTabId, {
+            type: 'REPLAY_REQUEST',
+            data: {
+                url,
+                method,
+                headers: req ? req.requestHeaders : {},
+                body
+            }
+        });
+        closeReplayModal();
+    }
 }
 
 // --- Rendering ---

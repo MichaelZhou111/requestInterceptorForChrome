@@ -69,6 +69,13 @@
                     <div class="detail-header">
                         <button id="btn-back" class="icon-btn mobile-only">←</button>
                         <div class="url-title" id="detail-url"></div>
+                        <button id="btn-replay" class="replay-btn">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 4v6h-6"></path>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                            Replay
+                        </button>
                     </div>
                     
                     <div class="detail-body">
@@ -94,6 +101,41 @@
             </div>
         </div>
     </div>
+
+    <!-- Replay Modal -->
+    <div id="replay-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit & Replay Request</h3>
+                <button id="btn-close-modal" class="icon-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Method</label>
+                    <select id="replay-method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>URL</label>
+                    <input type="text" id="replay-url" class="form-input">
+                </div>
+                <div class="form-group" style="flex: 1; display: flex; flex-direction: column;">
+                    <label>Body (JSON)</label>
+                    <textarea id="replay-body" class="form-input code-font" spellcheck="false"></textarea>
+                    <div id="json-error" class="error-msg hidden">Invalid JSON</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-send-replay" class="primary-btn">Send Request</button>
+            </div>
+        </div>
+    </div>
+
     <script src="sidepanel.js"></script>
 </body>
 </html>
