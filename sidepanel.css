@@ -101,18 +101,24 @@ body {
 .filter-select {
     background-color: transparent;
     border: none;
-    border-right: 1px solid var(--border);
     color: var(--text-muted);
     font-size: 11px;
     outline: none;
-    padding: 4px;
+    padding: 4px 2px;
     cursor: pointer;
-    max-width: 90px;
+    max-width: 85px;
 }
 
 .filter-select option {
     background-color: var(--bg-dark);
     color: var(--text-main);
+}
+
+.filter-separator {
+    width: 1px;
+    height: 14px;
+    background-color: var(--border);
+    margin: 0 4px;
 }
 
 #input-filter {
@@ -124,6 +130,8 @@ body {
     font-size: 12px;
     outline: none;
     min-width: 0;
+    border-left: 1px solid var(--border);
+    margin-left: 4px;
 }
 
 /* Split View */

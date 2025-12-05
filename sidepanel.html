@@ -32,14 +32,23 @@
                 </label>
             </div>
             <div class="search-box">
-                <select id="filter-mode" class="filter-select">
-                    <option value="all">Full URL</option>
+                <!-- Dropdown 1: Scope -->
+                <select id="filter-scope" class="filter-select" title="Search Scope">
+                    <option value="url">Full URL</option>
                     <option value="path">Path Only</option>
                     <option value="path_query">Path & Query</option>
-                    <option value="exact">Exact Match</option>
+                </select>
+                
+                <div class="filter-separator"></div>
+
+                <!-- Dropdown 2: Match Method -->
+                <select id="filter-match" class="filter-select" title="Match Method">
+                    <option value="contains">Contains</option>
+                    <option value="exact">Exact</option>
                     <option value="regex">Regex</option>
                 </select>
-                <input type="text" id="input-filter" placeholder="Filter URLs...">
+
+                <input type="text" id="input-filter" placeholder="Filter...">
             </div>
         </div>
 

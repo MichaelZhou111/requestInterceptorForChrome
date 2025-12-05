@@ -6,7 +6,11 @@ let activeTabId = null;
 let isCapturing = true;
 let preserveLog = false;
 let filterText = '';
-let filterMode = 'all'; // New state: 'all' | 'path' | 'path_query' | 'exact' | 'regex'
+
+// New Filter States
+let filterScope = 'url'; // 'url', 'path', 'path_query'
+let filterMatch = 'contains'; // 'contains', 'exact', 'regex'
+
 let selectedRequestId = null;
 
 // --- DOM Elements ---
@@ -25,7 +29,8 @@ const detailResponse = document.getElementById('detail-response');
 
 // Filter Elements
 const inputFilter = document.getElementById('input-filter');
-const filterModeSelect = document.getElementById('filter-mode');
+const filterScopeSelect = document.getElementById('filter-scope');
+const filterMatchSelect = document.getElementById('filter-match');
 
 // Modal Elements
 const replayModal = document.getElementById('replay-modal');
@@ -92,13 +97,18 @@ function setupEventListeners() {
 
     // Filter Input
     inputFilter.addEventListener('input', (e) => {
-        filterText = e.target.value; // Don't lowercase here, handle in render based on mode
+        filterText = e.target.value; 
         renderRequestList();
     });
 
-    // Filter Mode Select
-    filterModeSelect.addEventListener('change', (e) => {
-        filterMode = e.target.value;
+    // Filter Mode Selects
+    filterScopeSelect.addEventListener('change', (e) => {
+        filterScope = e.target.value;
+        renderRequestList();
+    });
+
+    filterMatchSelect.addEventListener('change', (e) => {
+        filterMatch = e.target.value;
         renderRequestList();
     });
 
@@ -180,14 +190,16 @@ function setupEventListeners() {
     });
 
     // Navigation/Refresh
-    chrome.webNavigation.onCommitted.addListener((details) => {
-        if (details.frameId === 0 && details.tabId === activeTabId && !preserveLog) {
-            requests = [];
-            selectedRequestId = null;
-            renderRequestList();
-            renderDetail();
-        }
-    });
+    if (chrome.webNavigation && chrome.webNavigation.onCommitted) {
+        chrome.webNavigation.onCommitted.addListener((details) => {
+            if (details.frameId === 0 && details.tabId === activeTabId && !preserveLog) {
+                requests = [];
+                selectedRequestId = null;
+                renderRequestList();
+                renderDetail();
+            }
+        });
+    }
 }
 
 // --- Replay Logic ---
@@ -280,47 +292,44 @@ function renderRequestList() {
         // If filter is empty, show all
         if (!searchText) return true;
 
-        let targetUrl = req.url;
+        // 1. Determine Target String based on Scope
+        let targetString = req.url;
         let urlObj = null;
 
-        try {
-            urlObj = new URL(req.url);
-        } catch (e) {
-            // If URL is invalid (e.g. data URI), force simple match mode
-            return req.url.toLowerCase().includes(searchText.toLowerCase());
+        try { urlObj = new URL(req.url); } catch(e) {}
+
+        if (urlObj) {
+            if (filterScope === 'path') {
+                targetString = urlObj.pathname;
+            } else if (filterScope === 'path_query') {
+                targetString = urlObj.pathname + urlObj.search;
+            }
+            // else 'url' stays req.url
         }
 
-        // Apply Logic based on mode
-        switch (filterMode) {
-            case 'path':
-                // Match path only (e.g., /api/v1/users)
-                return urlObj.pathname.toLowerCase().includes(searchText.toLowerCase());
-            
-            case 'path_query':
-                // Match path + query (e.g., /api/v1/users?id=123)
-                const pathQuery = urlObj.pathname + urlObj.search;
-                return pathQuery.toLowerCase().includes(searchText.toLowerCase());
-            
-            case 'exact':
-                return req.url === searchText;
-
-            case 'regex':
-                try {
-                    // Case-insensitive regex match
-                    const regex = new RegExp(searchText, 'i');
-                    return regex.test(req.url);
-                } catch (e) {
-                    // Invalid regex, treat as non-match (or fallback to simple include?)
-                    // Let's fallback to simple include to be user friendly while typing
-                    return req.url.toLowerCase().includes(searchText.toLowerCase());
-                }
-
-            case 'all':
-            default:
-                // Match Method OR Full URL
-                return req.method.toLowerCase().includes(searchText.toLowerCase()) || 
-                       req.url.toLowerCase().includes(searchText.toLowerCase());
+        // 2. Perform Match
+        // Note: Full URL mode also checks Method if in 'contains' mode for UX convenience,
+        // but let's stick to strict string matching for clarity with the new dropdowns.
+        
+        if (filterMatch === 'exact') {
+             // Case-insensitive exact match
+            return targetString.toLowerCase() === searchText.toLowerCase();
+        } 
+        
+        if (filterMatch === 'regex') {
+            try {
+                // Regex is powerful, allow case-insensitive flag by default for UX
+                const regex = new RegExp(searchText, 'i');
+                return regex.test(targetString);
+            } catch (e) {
+                // Invalid regex - Treat as no match, or fallback to contains? 
+                // Let's fallback to contains to not break while typing
+                return targetString.toLowerCase().includes(searchText.toLowerCase());
+            }
         }
+
+        // Default: 'contains'
+        return targetString.toLowerCase().includes(searchText.toLowerCase());
     });
 
     if (filtered.length === 0) {
