@@ -5,12 +5,30 @@
   const setRequestHeader = XHR.setRequestHeader;
   const originalFetch = window.fetch;
 
-  // Helper to broadcast data
+  // --- Helpers ---
+
   const broadcast = (data) => {
-    window.postMessage({
-      source: 'ajax-interceptor',
-      payload: data
-    }, '*');
+    try {
+        window.postMessage({
+            source: 'ajax-interceptor',
+            payload: data
+        }, '*');
+    } catch (e) {
+        // Fallback for non-clonable data
+        try {
+            const safeData = JSON.parse(JSON.stringify(data, (key, value) => {
+                if (value instanceof Blob) return '[Blob]';
+                if (value instanceof File) return '[File]';
+                return value;
+            }));
+            window.postMessage({
+                source: 'ajax-interceptor',
+                payload: safeData
+            }, '*');
+        } catch(err) {
+            console.error('Failed to broadcast request', err);
+        }
+    }
   };
 
   const safeJsonParse = (str) => {
@@ -21,7 +39,7 @@
     }
   };
 
-  // Helper to parse XHR headers string into object
+  // Helper to parse headers string into object
   const parseHeaders = (headerStr) => {
       const headers = {};
       if (!headerStr) return headers;
@@ -35,10 +53,41 @@
       return headers;
   };
 
+  // Smart Payload Parser (Handles JSON string, FormData, URLSearchParams)
+  const parsePayload = (data) => {
+      if (typeof data === 'string') {
+           try {
+               return JSON.parse(data);
+           } catch(e) {
+               return data;
+           }
+      }
+      if (data instanceof FormData) {
+          const obj = {};
+          data.forEach((value, key) => {
+              if (obj[key]) {
+                  if (!Array.isArray(obj[key])) {
+                      obj[key] = [obj[key]];
+                  }
+                  obj[key].push(value);
+              } else {
+                  obj[key] = value;
+              }
+          });
+          return obj;
+      }
+      if (data instanceof URLSearchParams) {
+          const obj = {};
+          data.forEach((value, key) => obj[key] = value);
+          return obj;
+      }
+      return data;
+  };
+
   // --- Intercept XMLHttpRequest ---
   
   XHR.open = function(method, url) {
-    this._method = method;
+    this._method = method ? method.toUpperCase() : 'GET';
     this._url = url;
     this._requestHeaders = {};
     return open.apply(this, arguments);
@@ -53,11 +102,14 @@
   XHR.send = function(postData) {
     const id = Math.random().toString(36).substr(2, 9);
     
-    this.addEventListener('load', function() {
+    // Use 'loadend' to catch success, error, and abort events
+    this.addEventListener('loadend', function() {
       // Avoid breaking if responseType is not text compatible
       let responseBody = null;
       if (!this.responseType || this.responseType === 'text') {
         responseBody = safeJsonParse(this.responseText);
+      } else {
+        responseBody = `[${this.responseType || 'blob'} data]`;
       }
       
       const responseHeaders = parseHeaders(this.getAllResponseHeaders());
@@ -72,7 +124,7 @@
         isReplay: false,
         requestHeaders: this._requestHeaders,
         responseHeaders: responseHeaders,
-        requestBody: safeJsonParse(postData) || postData,
+        requestBody: parsePayload(postData),
         responseBody: responseBody,
         duration: 0 
       });
@@ -103,14 +155,14 @@
     if (config) {
         if (config.method) method = config.method;
         if (config.body) {
-            requestBody = safeJsonParse(config.body) || config.body;
+            requestBody = parsePayload(config.body);
         }
         if (config.headers) {
             if (config.headers instanceof Headers) {
                 // Check for Replay Flag
                 if (config.headers.has('X-Extension-Replay')) {
                     isReplay = true;
-                    config.headers.delete('X-Extension-Replay'); // Remove before sending
+                    config.headers.delete('X-Extension-Replay'); 
                 }
                 config.headers.forEach((v, k) => reqHeaders[k] = v);
             } else {
@@ -119,7 +171,7 @@
                 const replayKey = headerKeys.find(k => k.toLowerCase() === 'x-extension-replay');
                 if (replayKey) {
                     isReplay = true;
-                    delete config.headers[replayKey]; // Remove before sending
+                    delete config.headers[replayKey]; 
                 }
                 reqHeaders = config.headers;
             }
@@ -127,7 +179,7 @@
     }
 
     try {
-        const response = await originalFetch(resource, config); // Pass modified config
+        const response = await originalFetch(resource, config); 
         
         const clone = response.clone();
         
@@ -159,6 +211,22 @@
 
         return response;
     } catch (err) {
+        // Capture failed fetches too
+        const duration = Date.now() - startTime;
+        broadcast({
+            id,
+            timestamp: new Date().toLocaleTimeString(),
+            method: method.toUpperCase(),
+            url: url,
+            status: 0, // Network Error
+            type: 'fetch',
+            isReplay: isReplay,
+            requestHeaders: reqHeaders,
+            responseHeaders: {},
+            requestBody: requestBody,
+            responseBody: { error: err.message || 'Network Error' },
+            duration
+        });
         return Promise.reject(err);
     }
   };
