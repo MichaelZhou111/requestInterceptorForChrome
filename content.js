@@ -1,20 +1,9 @@
 // content.js
 
-// This script runs in the isolated content world.
-// It injects the proxy script into the MAIN world to intercept window.fetch/XHR.
+// Note: proxy.js is now injected via manifest.json with world: "MAIN".
+// We no longer need to manually inject the script tag here.
 
-const injectScript = () => {
-  const script = document.createElement('script');
-  script.src = chrome.runtime.getURL('proxy.js');
-  script.onload = function() {
-    this.remove();
-  };
-  (document.head || document.documentElement).appendChild(script);
-};
-
-injectScript();
-
-// Listen for messages from the injected script (proxy.js)
+// Listen for messages from the proxy script (running in Main World)
 window.addEventListener('message', (event) => {
   // We only accept messages from ourselves
   if (event.source !== window || !event.data || event.data.source !== 'ajax-interceptor') {
