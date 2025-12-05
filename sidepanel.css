@@ -157,6 +157,32 @@ body {
     border-left: 3px solid var(--accent);
 }
 
+/* Replay Distinction */
+.request-item.replay-item {
+    background-color: rgba(139, 92, 246, 0.05); /* Very light purple */
+    border-left: 3px solid #8b5cf6; 
+}
+.request-item.replay-item:hover {
+    background-color: rgba(139, 92, 246, 0.1);
+}
+.request-item.replay-item.selected {
+    background-color: rgba(139, 92, 246, 0.2);
+    border-left: 3px solid #7c3aed;
+}
+
+.tag-replay {
+    font-size: 9px;
+    background-color: #8b5cf6;
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 700;
+    margin-right: 6px;
+    vertical-align: middle;
+    display: inline-block;
+    line-height: 1.2;
+}
+
 .req-header {
     display: flex;
     justify-content: space-between;

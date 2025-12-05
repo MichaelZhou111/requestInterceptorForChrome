@@ -55,8 +55,28 @@ function setupEventListeners() {
     // Toolbar buttons
     document.getElementById('btn-record').addEventListener('click', (e) => {
         isCapturing = !isCapturing;
-        e.currentTarget.classList.toggle('active', isCapturing);
-        e.currentTarget.setAttribute('title', isCapturing ? 'Stop recording' : 'Start recording');
+        const btn = e.currentTarget;
+        btn.classList.toggle('active', isCapturing);
+        btn.setAttribute('title', isCapturing ? 'Stop recording' : 'Start recording');
+        
+        // Update Icon SVG
+        if (isCapturing) {
+            // Recording (Show Red Dot)
+             btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="3" fill="currentColor"></circle>
+                </svg>
+            `;
+        } else {
+            // Paused (Show Play/Resume icon)
+            btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon>
+                </svg>
+            `;
+        }
     });
 
     document.getElementById('btn-clear').addEventListener('click', () => {
@@ -132,6 +152,7 @@ function setupEventListeners() {
             url: message.url,
             status: message.status,
             type: message.type || 'xhr',
+            isReplay: message.isReplay || false,
             requestHeaders: message.requestHeaders || {},
             responseHeaders: message.responseHeaders || {},
             requestBody: message.requestBody,
@@ -309,17 +330,23 @@ function renderRequestList() {
         filtered.forEach(req => {
             const el = document.createElement('div');
             el.className = `request-item ${selectedRequestId === req.id ? 'selected' : ''}`;
+            if (req.isReplay) {
+                el.classList.add('replay-item');
+            }
             el.onclick = () => selectRequest(req.id);
             
             const urlName = req.url.split('/').pop() || req.url;
             const statusClass = getStatusClass(req.status);
+            
+            // Replay Tag HTML
+            const replayTag = req.isReplay ? '<span class="tag-replay">REPLAY</span>' : '';
 
             el.innerHTML = `
                 <div class="req-header">
                     <span class="method ${req.method}">${req.method}</span>
                     <span class="status ${statusClass}">${req.status || '...'}</span>
                 </div>
-                <div class="req-url" title="${req.url}">${urlName}</div>
+                <div class="req-url" title="${req.url}">${replayTag}${urlName}</div>
                 <div class="req-meta">
                     <span style="overflow:hidden; text-overflow:ellipsis; max-width:70%">${formatUrl(req.url)}</span>
                     <span>${req.timestamp}</span>

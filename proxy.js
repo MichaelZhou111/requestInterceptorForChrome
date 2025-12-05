@@ -69,6 +69,7 @@
         url: this._url,
         status: this.status,
         type: 'xhr',
+        isReplay: false,
         requestHeaders: this._requestHeaders,
         responseHeaders: responseHeaders,
         requestBody: safeJsonParse(postData) || postData,
@@ -90,6 +91,7 @@
     let requestBody = null;
     let url = '';
     let reqHeaders = {};
+    let isReplay = false;
 
     if (typeof resource === 'string') {
         url = resource;
@@ -105,15 +107,27 @@
         }
         if (config.headers) {
             if (config.headers instanceof Headers) {
+                // Check for Replay Flag
+                if (config.headers.has('X-Extension-Replay')) {
+                    isReplay = true;
+                    config.headers.delete('X-Extension-Replay'); // Remove before sending
+                }
                 config.headers.forEach((v, k) => reqHeaders[k] = v);
             } else {
+                // Check for Replay Flag in object
+                const headerKeys = Object.keys(config.headers);
+                const replayKey = headerKeys.find(k => k.toLowerCase() === 'x-extension-replay');
+                if (replayKey) {
+                    isReplay = true;
+                    delete config.headers[replayKey]; // Remove before sending
+                }
                 reqHeaders = config.headers;
             }
         }
     }
 
     try {
-        const response = await originalFetch(...args);
+        const response = await originalFetch(resource, config); // Pass modified config
         
         const clone = response.clone();
         
@@ -132,6 +146,7 @@
                 url: url,
                 status: response.status,
                 type: 'fetch',
+                isReplay: isReplay,
                 requestHeaders: reqHeaders,
                 responseHeaders: resHeaders,
                 requestBody: requestBody,
@@ -175,6 +190,9 @@
               }
           });
       }
+
+      // Add Internal Replay Flag
+      cleanHeaders['X-Extension-Replay'] = 'true';
 
       const fetchOptions = {
           method: method,
